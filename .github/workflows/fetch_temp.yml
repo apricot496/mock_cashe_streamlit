@@ -1,0 +1,41 @@
+name: Fetch Chuoh Temperature
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-chuoh-temp
+  cancel-in-progress: false
+
+jobs:
+  fetch-and-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run fetch script
+        run: python fetch_and_insert.py
+
+      - name: Commit DB if changed
+        run: |
+          git status --porcelain
+          if [ -n "$(git status --porcelain mock_cache_data.db)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add mock_cache_data.db
+            git commit -m "Update chuoh_temp (auto)"
+            git push
+          else
+            echo "No changes to commit."
+          
